@@ -1,0 +1,12 @@
+# 로컬 (M2 Pro) 환경 의존성
+# base.txt 포함
+-r base.txt
+
+# vLLM — CPU 빌드
+# M2 Pro는 CUDA GPU가 없으므로 CPU 모드로 실행
+# 설치 방법: pip install -r requirements/local.txt
+vllm>=0.6.0
+
+# Jupyter (노트북 실행용)
+jupyter>=1.0.0
+ipykernel>=6.0.0

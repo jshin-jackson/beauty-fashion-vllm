@@ -1,0 +1,7 @@
+# 공통 의존성 — 모든 환경에서 필요
+fastapi==0.115.0          # 웹 프레임워크
+uvicorn[standard]==0.30.6 # ASGI 서버
+openai>=1.40.0            # vLLM OpenAI 호환 API 클라이언트
+python-dotenv==1.0.1      # .env 파일 로드
+pydantic>=2.0             # 데이터 유효성 검사 (FastAPI 내장)
+requests>=2.31.0          # HTTP 클라이언트 (노트북용)

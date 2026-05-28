@@ -1,0 +1,11 @@
+# Cloudera CML 환경 의존성
+# base.txt 포함
+-r base.txt
+
+# vLLM — CUDA 빌드 (CML GPU 환경)
+# CUDA가 미리 설치된 CML 환경에서 설치
+vllm>=0.6.0
+
+# Jupyter (CML Session에서 노트북 실행용)
+jupyter>=1.0.0
+ipykernel>=6.0.0
