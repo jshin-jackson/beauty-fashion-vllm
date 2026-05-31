@@ -10,8 +10,11 @@
 set -e
 
 # .env 파일에서 환경변수 로드 (존재하는 경우)
+# xargs 대신 set -a / source 방식 사용 → 공백 포함 값(한국어 등) 처리 가능
 if [ -f .env ]; then
-    export $(grep -v '^#' .env | xargs)
+    set -a
+    source .env
+    set +a
 fi
 
 # 기본값 설정 (브랜치별 .env 에서 덮어씀)
