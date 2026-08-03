@@ -149,7 +149,7 @@ OpenAI 호환 API 서버를 기동합니다.
 python -m vllm.entrypoints.openai.api_server \
   --model Qwen/Qwen2.5-0.5B-Instruct \
   --host 0.0.0.0 \
-  --port 8001 \
+  --port 8000 \
   --gpu-memory-utilization 0.35 \
   --max-model-len 2048 \
   --max-num-seqs 1
@@ -167,7 +167,7 @@ python -m vllm.entrypoints.openai.api_server \
 
 ![Step 10 — vLLM 서버 준비 완료](docs/images/10-vllm-startup-complete.png)
 
-> **설명**: `/v1/models`, `/v1/chat/completions` 등 OpenAI 호환 API 엔드포인트가 `http://0.0.0.0:8001`에서 활성화됩니다. 이 터미널은 vLLM 서버가 실행 중인 상태로 유지해야 합니다.
+> **설명**: `/v1/models`, `/v1/chat/completions` 등 OpenAI 호환 API 엔드포인트가 `http://0.0.0.0:8000`에서 활성화됩니다. Beauty Fashion App과 **동시에** 실행할 때는 vLLM을 **8000**, 앱을 **8001** 포트로 분리합니다. (아래 스크린샷은 초기 테스트 시 8001 포트 예시입니다.)
 
 ---
 
@@ -176,7 +176,7 @@ python -m vllm.entrypoints.openai.api_server \
 **새 터미널**(또는 Session 내 다른 Terminal Access)에서 API 응답을 확인합니다.
 
 ```bash
-curl http://127.0.0.1:8001/v1/models
+curl http://127.0.0.1:8000/v1/models
 ```
 
 ![Step 11 — /v1/models API 테스트 성공](docs/images/11-vllm-api-test.png)
@@ -191,33 +191,36 @@ vLLM 설치·테스트가 완료되면 아래 두 가지 방법 중 하나로 �
 
 ### 방법 A — Session에서 빠르게 실행 (vLLM 이미 실행 중)
 
-vLLM이 **터미널 1**에서 포트 `8001`로 실행 중일 때, **같은 Session**의 **터미널 2**에서:
+포트 구성:
+
+| 서비스 | 포트 | 설명 |
+|--------|------|------|
+| vLLM | **8000** | 터미널 1 — API 백엔드 (내부 통신) |
+| FastAPI 앱 | **8001** | 터미널 2 — 챗봇 UI (Session에서 접속) |
+
+vLLM이 **터미널 1**에서 포트 `8000`으로 실행 중일 때, **같은 Session**의 **터미널 2**에서:
 
 ```bash
-cd /home/cdsw
-git clone https://github.com/jshin-jackson/beauty-fashion-vllm.git
-cd beauty-fashion-vllm
-git checkout local-m2pro
+cd ~/beauty-fashion-vllm
+git pull
 
-# vLLM 설치에 사용한 가상환경 활성화 (필수)
-# 프롬프트에 (vllm_cpu) 가 보여야 합니다
 source ~/vllm_cpu/bin/activate
 unset PIP_USER && export PIP_USER=0
 pip install -r requirements/base.txt
 
-export VLLM_BASE_URL=http://127.0.0.1:8001/v1
+export VLLM_BASE_URL=http://127.0.0.1:8000/v1
 export MODEL_NAME=Qwen/Qwen2.5-0.5B-Instruct
-export APP_PORT=8080
-uvicorn app.main:app --host 0.0.0.0 --port 8080
+export APP_PORT=8001
+uvicorn app.main:app --host 0.0.0.0 --port 8001
 ```
 
 > **Permission denied**: venv 미활성화 시 발생 → `source ~/vllm_cpu/bin/activate` 후 재시도.
 
-> **pip dependency conflicts**: `vllm-cpu`와 같은 venv에 `base.txt`를 설치할 때, 예전 FastAPI/uvicorn 고정 버전이 vLLM 패키지를 **다운그레이드**하면 충돌 경고가 납니다. `git pull`로 최신 `requirements/base.txt`를 받은 뒤 `pip install -r requirements/base.txt`를 다시 실행하세요. vLLM이 이미 fastapi/uvicorn을 포함하므로, `pip install python-dotenv` 만으로도 충분한 경우가 많습니다.
+> **pip dependency conflicts**: `pip install "fastapi[standard]>=0.133.0,<0.137.0" "uvicorn[standard]>=0.31.1" python-dotenv` 로 vllm-cpu와 호환 버전을 유지하세요.
 
-> **address already in use (8100)**: 포트 8100은 Cloudera AI **Application 전용** 포트로 Session에서 이미 점유되어 있을 수 있습니다. Session 테스트는 **8080** 포트를 사용하세요. 8100을 꼭 써야 한다면 `lsof -i :8100` 또는 `ss -tlnp | grep 8100`으로 점유 프로세스를 확인 후 종료합니다.
+> **address already in use**: vLLM(8000)과 앱(8001) 포트가 겹치지 않도록 확인하세요. `ss -tlnp | grep -E '8000|8001'`
 
-헬스체크: `curl http://127.0.0.1:8080/api/health`
+헬스체크: `curl http://127.0.0.1:8001/api/health`
 
 > **주의**: Session을 종료하면 vLLM과 앱이 모두 중단됩니다.
 

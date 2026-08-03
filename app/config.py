@@ -10,11 +10,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-VLLM_BASE_URL: str = os.getenv("VLLM_BASE_URL", "http://127.0.0.1:8001/v1")
+VLLM_BASE_URL: str = os.getenv("VLLM_BASE_URL", "http://127.0.0.1:8000/v1")
 MODEL_NAME: str = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-0.5B-Instruct")
 MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "300"))
 TEMPERATURE: float = float(os.getenv("TEMPERATURE", "0.7"))
-APP_PORT: int = int(os.getenv("APP_PORT", "8100"))
+# Session: 8001 / Cloudera AI Application: 8100
+APP_PORT: int = int(os.getenv("APP_PORT", "8001"))
 
 SYSTEM_PROMPT: str = os.getenv(
     "SYSTEM_PROMPT",

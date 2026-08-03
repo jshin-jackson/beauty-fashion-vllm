@@ -7,10 +7,10 @@ set -e
 unset PIP_USER
 export PIP_USER=0
 
-export VLLM_BASE_URL="${VLLM_BASE_URL:-http://127.0.0.1:8001/v1}"
+export VLLM_BASE_URL="${VLLM_BASE_URL:-http://127.0.0.1:8000/v1}"
 export MODEL_NAME="${MODEL_NAME:-Qwen/Qwen2.5-0.5B-Instruct}"
 export MAX_MODEL_LEN="${MAX_MODEL_LEN:-2048}"
-export VLLM_PORT="${VLLM_PORT:-8001}"
+export VLLM_PORT="${VLLM_PORT:-8000}"
 export GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.35}"
 export MAX_NUM_SEQS="${MAX_NUM_SEQS:-1}"
 export APP_PORT="${APP_PORT:-8100}"
