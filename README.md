@@ -2,97 +2,150 @@
 
 > **목적**: vLLM / AI 인퍼런스 / Cloudera AI 배포를 단계적으로 이해하는 학습용 프로젝트입니다.
 
----
-
-## Cloudera AI에서 Beauty Fashion App 실행
-
-현재 Session에서 vLLM(`vllm-cpu` 0.26.0) 테스트까지 완료한 상태라면, 아래 두 가지 방법 중 하나를 선택하세요.
-
-### 방법 A — Session에서 빠르게 실행 (현재 상태에 적합)
-
-vLLM이 **이미 터미널 1에서 실행 중**일 때, **같은 Session**에서 FastAPI 앱만 추가로 실행합니다.
-
-**1. 프로젝트 파일 업로드**
-
-Cloudera AI 프로젝트(`vLLM-Test` 등) → **Files** → **Upload** 로 이 저장소의 `app/`, `requirements/` 폴더를 업로드합니다.
-
-**2. 터미널 2 — 앱 의존성 설치**
-
-```bash
-cd /home/cdsw
-unset PIP_USER && export PIP_USER=0
-pip install -r requirements/base.txt
-```
-
-**3. 터미널 2 — FastAPI 앱 시작**
-
-vLLM이 포트 `8001`에서 실행 중이라면:
-
-```bash
-export VLLM_BASE_URL=http://127.0.0.1:8001/v1
-export MODEL_NAME=Qwen/Qwen2.5-0.5B-Instruct
-export APP_PORT=8100
-uvicorn app.main:app --host 0.0.0.0 --port 8100
-```
-
-**4. 브라우저에서 접속**
-
-- Session UI에서 앱 URL(또는 포트 8100 프록시 링크)을 엽니다.
-- 헬스체크: `curl http://127.0.0.1:8100/api/health`
-
-> **주의**: Session을 종료하면 vLLM과 앱이 모두 중단됩니다.
+**환경**: Cloudera Data Service on-premise 1.5.5 · Cloudera AI · Python 3.11 Standard · CPU (non-GPU)
 
 ---
 
-### 방법 B — Application으로 배포 (권장)
+## Cloudera AI에 vLLM 설치하기
 
-Session과 별도로 **Applications** 메뉴에서 웹 앱을 상시 실행합니다. `cdsw-build.sh` / `cdsw-run.sh`가 vLLM + FastAPI를 함께 기동합니다.
+아래 순서는 **Cloudera AI Workbench**에서 CPU 기반 Session을 만들고, `vllm-cpu` 0.26.0을 설치·실행·테스트하는 전체 과정입니다.
 
-**1. 프로젝트에 전체 코드 업로드**
+### Step 1. Hadoop Authentication (Kerberos 로그인)
 
-Git 연결 또는 Files 업로드로 다음 파일이 프로젝트 루트(`/home/cdsw`)에 있어야 합니다:
+Cloudera AI에서 Hadoop 클러스터 데이터에 접근하려면 먼저 Kerberos 인증이 필요합니다.
 
-```
-app/
-requirements/
-scripts/
-cdsw-build.sh
-cdsw-run.sh
-.env.cloudera.example
-```
+1. 왼쪽 메뉴 → **User Settings**
+2. **Hadoop Authentication** 탭 선택
+3. Kerberos 로그인 수행
 
-**2. Application 생성**
+아래처럼 **"Currently authenticated as …"** 메시지가 표시되면 성공입니다.
+
+![Step 1 — Kerberos 인증 완료](docs/images/01-hadoop-authentication.png)
+
+> **설명**: `systest@QE-INFRA-AD.CLOUDERA.COM` 계정으로 인증된 상태입니다. 이후 Session·Application에서 Hadoop/Spark 리소스를 사용할 수 있습니다. (본 가이드에서는 Spark 없이 CPU Session만 사용합니다.)
+
+---
+
+### Step 2. Runtime Catalog 확인
+
+사용할 Runtime Image가 **Python 3.11 Standard**인지 확인합니다.
+
+1. 왼쪽 메뉴 → **Runtime Catalog**
+2. Editor: **PBJ Workbench**, Kernel: **Python 3.11** 필터 적용
+3. **Standard Edition** (Default) 확인
+
+![Step 2 — Runtime Catalog에서 Python 3.11 Standard 확인](docs/images/02-runtime-catalog.png)
+
+> **설명**: GPU Edition이 아닌 **Standard Edition**을 사용합니다. vLLM CPU 빌드(`vllm-cpu`)는 NVIDIA GPU 없이 동작합니다. Runtime Image: `ml-runtime-pbj-workbench-python3.11-standard:2026.04`
+
+---
+
+### Step 3. 프로젝트 생성
+
+vLLM과 앱 코드를 담을 프로젝트를 만듭니다.
+
+1. 왼쪽 메뉴 → **Projects** → **New Project**
+2. 프로젝트 이름 입력 (예: `vLLM-Test`)
+
+![Step 3 — vLLM-Test 프로젝트 Overview](docs/images/03-project-overview.png)
+
+> **설명**: 프로젝트 Overview 화면입니다. 이후 Session·Application·Files가 이 프로젝트 안에서 관리됩니다. Git 연결 시 `https://github.com/jshin-jackson/beauty-fashion-vllm` 저장소를 clone할 수 있습니다.
+
+---
+
+### Step 4. CPU Session 생성
+
+대화형 작업(터미널, 노트북)을 위한 Session을 시작합니다.
+
+1. 프로젝트 → **New Session**
+2. 아래와 같이 설정
 
 | 항목 | 값 |
 |------|-----|
-| Name | `beauty-fashion-ai` |
-| Subdomain | 원하는 이름 |
-| Script | `cdsw-run.sh` |
-| Runtime | Python 3.11 Standard |
-| Resource Profile | 2 vCPU / 4 GiB (CPU) |
+| Session Name | `vLLM-T1` (임의) |
+| Editor | PBJ Workbench |
+| Kernel | Python 3.11 |
+| Edition | Standard |
+| Resource Profile | **2 vCPU / 4 GiB** (CPU) |
+| Enable Spark | Off |
 
-**3. Create Application 클릭**
+![Step 4 — Session 생성 설정](docs/images/04-new-session.png)
 
-- `cdsw-build.sh` → `pip install -r requirements/cloudera.txt` (vllm-cpu 포함)
-- `cdsw-run.sh` → vLLM 백그라운드 시작 → FastAPI 포트 **8100** 시작
-
-**4. Application URL 접속**
-
-생성된 HTTPS URL(예: `https://beauty-fashion-ai-xxx.caimlxdev...`)에서 챗봇 UI를 사용합니다.
+> **설명**: GPU를 선택하지 않고 **2 vCPU / 4 GiB** CPU 프로파일을 사용합니다. 0.5B 소형 모델(`Qwen/Qwen2.5-0.5B-Instruct`) 기준으로 vLLM CPU 추론에 적합한 최소 구성입니다.
 
 ---
 
-## vLLM 단독 실행 (Session 터미널)
+### Step 5. Terminal Access 열기
 
-Application 없이 vLLM만 Session에서 실행할 때:
+Session이 **Running** 상태가 되면 터미널에 접속합니다.
+
+1. Session 화면 우측 상단 → **Terminal Access** 클릭
+2. 새 터미널 창이 열립니다
+
+![Step 5 — Session 실행 중, Terminal Access 버튼](docs/images/05-session-terminal-access.png)
+
+> **설명**: PBJ Workbench 에디터와 별도로 **Cloudera AI Terminal** 웹 터미널이 열립니다. vLLM 설치·실행은 이 터미널에서 진행합니다. Session이 Running(2 vCPU / 4 GiB)인지 확인하세요.
+
+---
+
+### Step 6. Python 가상환경 생성 및 pip 설정
+
+Cloudera AI 환경에서는 기본 `PIP_USER` 설정이 venv와 충돌할 수 있습니다. 아래 순서로 해결합니다.
 
 ```bash
 python3 -m venv ~/vllm_cpu
 source ~/vllm_cpu/bin/activate
-unset PIP_USER && export PIP_USER=0
-pip install --upgrade pip
-pip install vllm-cpu
 
+# pip --user 오류 방지 (CDSW/CML 환경 필수)
+unset PIP_USER
+export PIP_USER=0
+
+pip install --upgrade pip
+```
+
+![Step 6 — venv 생성 및 pip 업그레이드](docs/images/06-venv-pip-setup.png)
+
+> **설명**: `(vllm_cpu)` 프롬프트가 보이면 가상환경 활성화 성공입니다. `ERROR: Can not perform a '--user' install` 오류가 나면 `unset PIP_USER && export PIP_USER=0`을 반드시 실행한 뒤 pip를 다시 실행하세요. pip 26.2로 업그레이드된 것을 확인할 수 있습니다.
+
+---
+
+### Step 7. vllm-cpu 설치
+
+CPU 전용 vLLM 패키지를 설치합니다.
+
+```bash
+pip install vllm-cpu
+```
+
+![Step 7 — vllm-cpu 및 PyTorch CPU 빌드 설치 완료](docs/images/07-vllm-cpu-install.png)
+
+> **설명**: `vllm-cpu` 0.26.0과 함께 `torch==2.11.0+cpu`, `torchvision`, `torchaudio` 등 CPU 전용 PyTorch 패키지가 자동 설치됩니다. CUDA 빌드(`vllm`)가 아닌 **`vllm-cpu`** 를 사용해야 CPU Session에서 정상 동작합니다.
+
+---
+
+### Step 8. PyTorch CPU 환경 확인
+
+설치가 올바른지 확인합니다.
+
+```bash
+python - <<EOF
+import torch
+print(torch.__version__)
+print(torch.cuda.is_available())
+EOF
+```
+
+![Step 8 — PyTorch CPU 빌드 확인](docs/images/08-torch-verification.png)
+
+> **설명**: `2.11.0+cpu`와 `False`(CUDA 미사용)가 출력되면 CPU 환경이 올바르게 구성된 것입니다. `True`가 나오면 GPU 빌드가 설치된 것이므로 venv를 재생성하고 `vllm-cpu`를 다시 설치하세요.
+
+---
+
+### Step 9. vLLM 서버 시작
+
+OpenAI 호환 API 서버를 기동합니다.
+
+```bash
 python -m vllm.entrypoints.openai.api_server \
   --model Qwen/Qwen2.5-0.5B-Instruct \
   --host 0.0.0.0 \
@@ -102,11 +155,86 @@ python -m vllm.entrypoints.openai.api_server \
   --max-num-seqs 1
 ```
 
-테스트:
+![Step 9 — vLLM API 서버 시작](docs/images/09-vllm-server-start.png)
+
+> **설명**: vLLM 0.26.0이 `device_config=cpu`로 엔진을 초기화합니다. `--gpu-memory-utilization 0.35`는 CPU 환경에서 **RAM 예약 비율**을 의미합니다 (4 GiB × 0.35 ≈ 1.4 GiB). `--max-num-seqs 1`은 CPU에서 동시 요청 1개로 제한해 안정성을 높입니다. Triton 미설치 경고는 CPU 환경에서 정상이며 무시해도 됩니다.
+
+---
+
+### Step 10. 서버 준비 완료 확인
+
+로그에 `Application startup complete.`가 표시되면 서버가 요청을 받을 준비가 된 것입니다.
+
+![Step 10 — vLLM 서버 준비 완료](docs/images/10-vllm-startup-complete.png)
+
+> **설명**: `/v1/models`, `/v1/chat/completions` 등 OpenAI 호환 API 엔드포인트가 `http://0.0.0.0:8001`에서 활성화됩니다. 이 터미널은 vLLM 서버가 실행 중인 상태로 유지해야 합니다.
+
+---
+
+### Step 11. API 테스트
+
+**새 터미널**(또는 Session 내 다른 Terminal Access)에서 API 응답을 확인합니다.
 
 ```bash
 curl http://127.0.0.1:8001/v1/models
 ```
+
+![Step 11 — /v1/models API 테스트 성공](docs/images/11-vllm-api-test.png)
+
+> **설명**: JSON 응답에 `"id": "Qwen/Qwen2.5-0.5B-Instruct"`가 포함되면 vLLM 설치·실행·모델 로드가 모두 성공한 것입니다. 왼쪽 터미널에는 `GET /v1/models HTTP/1.1" 200 OK` 로그가 기록됩니다.
+
+---
+
+## Cloudera AI에서 Beauty Fashion App 실행
+
+vLLM 설치·테스트가 완료되면 아래 두 가지 방법 중 하나로 챗봇 앱을 실행합니다.
+
+### 방법 A — Session에서 빠르게 실행 (vLLM 이미 실행 중)
+
+vLLM이 **터미널 1**에서 포트 `8001`로 실행 중일 때, **같은 Session**의 **터미널 2**에서:
+
+```bash
+cd /home/cdsw
+git clone https://github.com/jshin-jackson/beauty-fashion-vllm.git
+cd beauty-fashion-vllm
+git checkout local-m2pro
+
+unset PIP_USER && export PIP_USER=0
+pip install -r requirements/base.txt
+
+export VLLM_BASE_URL=http://127.0.0.1:8001/v1
+export MODEL_NAME=Qwen/Qwen2.5-0.5B-Instruct
+export APP_PORT=8100
+uvicorn app.main:app --host 0.0.0.0 --port 8100
+```
+
+헬스체크: `curl http://127.0.0.1:8100/api/health`
+
+> **주의**: Session을 종료하면 vLLM과 앱이 모두 중단됩니다.
+
+---
+
+### 방법 B — Application으로 배포 (권장)
+
+Session과 별도로 **Applications** 메뉴에서 웹 앱을 상시 실행합니다. `cdsw-build.sh` / `cdsw-run.sh`가 vLLM + FastAPI를 함께 기동합니다.
+
+**1. 프로젝트에 코드 clone**
+
+```bash
+git clone https://github.com/jshin-jackson/beauty-fashion-vllm.git
+cd beauty-fashion-vllm && git checkout local-m2pro
+```
+
+**2. Application 생성**
+
+| 항목 | 값 |
+|------|-----|
+| Name | `beauty-fashion-ai` |
+| Script | `cdsw-run.sh` |
+| Runtime | Python 3.11 Standard |
+| Resource Profile | 2 vCPU / 4 GiB (CPU) |
+
+**3. Create Application** → 생성된 HTTPS URL에서 챗봇 UI 사용
 
 ---
 
@@ -125,6 +253,7 @@ curl http://127.0.0.1:8001/v1/models
 
 ```
 beauty-fashion-vllm/
+├── docs/images/             # Cloudera AI 설치 가이드 스크린샷
 ├── app/
 │   ├── main.py              # FastAPI 서버
 │   ├── config.py            # 환경 설정
