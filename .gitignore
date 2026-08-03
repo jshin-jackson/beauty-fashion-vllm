@@ -15,9 +15,8 @@ env/
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# Environment variables (민감 정보 포함)
+# Environment variables
 .env
-.env.local
 .env.cloudera
 
 # OS

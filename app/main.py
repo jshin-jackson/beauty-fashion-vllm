@@ -72,7 +72,7 @@ async def health_check():
             "status": "ok",
             "vllm_connected": False,
             "loaded_models": [],
-            "message": "vLLM 서버에 연결할 수 없습니다. scripts/start_vllm.sh 를 실행하세요.",
+            "message": "vLLM 서버에 연결할 수 없습니다. Session 터미널에서 vLLM이 실행 중인지 확인하세요.",
         }
 
 
@@ -123,7 +123,7 @@ async def chat(request: ChatRequest):
         # vLLM 서버 연결 오류 또는 API 오류
         raise HTTPException(
             status_code=503,
-            detail=f"vLLM 서버 오류: {str(e)}. scripts/start_vllm.sh 가 실행 중인지 확인하세요.",
+            detail=f"vLLM 서버 오류: {str(e)}. vLLM 서버가 실행 중인지 확인하세요.",
         )
 
 

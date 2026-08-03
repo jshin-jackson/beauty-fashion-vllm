@@ -1,81 +1,123 @@
 # Beauty & Fashion AI — vLLM 학습 프로젝트
 
-> **목적**: vLLM / AI 인퍼런스 / Cloudera CML 배포를 단계적으로 이해하는 학습용 프로젝트입니다.
+> **목적**: vLLM / AI 인퍼런스 / Cloudera AI 배포를 단계적으로 이해하는 학습용 프로젝트입니다.
 
 ---
 
-## 단계별 로드맵
+## Cloudera AI에서 Beauty Fashion App 실행
 
-| 단계 | 내용 | 상태 |
-|------|------|------|
-| **Phase 1** | 개념 학습 (노트북) + 단순 패션 챗봇 | ✅ 현재 |
-| **Phase 2** | 리뷰 자동 요약 + 키워드 추출 추가 | 예정 |
-| **Phase 3** | OOTD 이미지 분석 (Multi-Modal) 추가 | 예정 |
+현재 Session에서 vLLM(`vllm-cpu` 0.26.0) 테스트까지 완료한 상태라면, 아래 두 가지 방법 중 하나를 선택하세요.
 
----
+### 방법 A — Session에서 빠르게 실행 (현재 상태에 적합)
 
-## 학습 순서 (이 순서대로 읽으세요)
+vLLM이 **이미 터미널 1에서 실행 중**일 때, **같은 Session**에서 FastAPI 앱만 추가로 실행합니다.
 
-### Step 1. vLLM 기본 개념 이해
-```
-notebooks/01_vllm_basics.ipynb
-```
-- vLLM이란 무엇인가? 왜 빠른가?
-- 서버 기동 방법과 각 파라미터 의미
-- OpenAI 호환 API로 첫 번째 요청 보내기
+**1. 프로젝트 파일 업로드**
 
-### Step 2. 추론 파라미터 실험
-```
-notebooks/02_inference_params.ipynb
-```
-- `temperature`, `top_p`, `max_tokens` 직접 실험
-- 값을 바꾸면 응답이 어떻게 달라지는지 체험
+Cloudera AI 프로젝트(`vLLM-Test` 등) → **Files** → **Upload** 로 이 저장소의 `app/`, `requirements/` 폴더를 업로드합니다.
 
-### Step 3. Cloudera CML 배포 이해
-```
-notebooks/03_cloudera_intro.ipynb
-```
-- CML 환경 구조 (Session / Job / Application)
-- GPU 할당 방법
-- 로컬 환경과의 차이점
-
-### Step 4. 앱 실행
-```
-app/main.py  ←  FastAPI 서버
-app/static/index.html  ←  브라우저 챗봇 UI
-```
-
----
-
-## 브랜치 구조
-
-```
-main
-├── local-m2pro   ← MacBook M2 Pro, CPU 모드, 소형 모델
-└── cloudera-cml  ← Cloudera CML, GPU 모드, 대형 모델
-```
-
-### local-m2pro 브랜치 실행 방법
+**2. 터미널 2 — 앱 의존성 설치**
 
 ```bash
-# 1. 의존성 설치
-pip install -r requirements/local.txt
-
-# 2. vLLM 서버 시작 (새 터미널)
-bash scripts/start_vllm.sh
-
-# 3. FastAPI 앱 시작 (다른 터미널)
-cp .env.local.example .env
-uvicorn app.main:app --reload --port 8080
-
-# 4. 브라우저에서 열기
-open http://localhost:8080
+cd /home/cdsw
+unset PIP_USER && export PIP_USER=0
+pip install -r requirements/base.txt
 ```
 
-### cloudera-cml 브랜치 실행 방법
+**3. 터미널 2 — FastAPI 앱 시작**
 
-CML에서는 `cdsw-build.sh`와 `cdsw-run.sh`가 자동으로 실행됩니다.
-자세한 내용은 `notebooks/03_cloudera_intro.ipynb` 참고.
+vLLM이 포트 `8001`에서 실행 중이라면:
+
+```bash
+export VLLM_BASE_URL=http://127.0.0.1:8001/v1
+export MODEL_NAME=Qwen/Qwen2.5-0.5B-Instruct
+export APP_PORT=8100
+uvicorn app.main:app --host 0.0.0.0 --port 8100
+```
+
+**4. 브라우저에서 접속**
+
+- Session UI에서 앱 URL(또는 포트 8100 프록시 링크)을 엽니다.
+- 헬스체크: `curl http://127.0.0.1:8100/api/health`
+
+> **주의**: Session을 종료하면 vLLM과 앱이 모두 중단됩니다.
+
+---
+
+### 방법 B — Application으로 배포 (권장)
+
+Session과 별도로 **Applications** 메뉴에서 웹 앱을 상시 실행합니다. `cdsw-build.sh` / `cdsw-run.sh`가 vLLM + FastAPI를 함께 기동합니다.
+
+**1. 프로젝트에 전체 코드 업로드**
+
+Git 연결 또는 Files 업로드로 다음 파일이 프로젝트 루트(`/home/cdsw`)에 있어야 합니다:
+
+```
+app/
+requirements/
+scripts/
+cdsw-build.sh
+cdsw-run.sh
+.env.cloudera.example
+```
+
+**2. Application 생성**
+
+| 항목 | 값 |
+|------|-----|
+| Name | `beauty-fashion-ai` |
+| Subdomain | 원하는 이름 |
+| Script | `cdsw-run.sh` |
+| Runtime | Python 3.11 Standard |
+| Resource Profile | 2 vCPU / 4 GiB (CPU) |
+
+**3. Create Application 클릭**
+
+- `cdsw-build.sh` → `pip install -r requirements/cloudera.txt` (vllm-cpu 포함)
+- `cdsw-run.sh` → vLLM 백그라운드 시작 → FastAPI 포트 **8100** 시작
+
+**4. Application URL 접속**
+
+생성된 HTTPS URL(예: `https://beauty-fashion-ai-xxx.caimlxdev...`)에서 챗봇 UI를 사용합니다.
+
+---
+
+## vLLM 단독 실행 (Session 터미널)
+
+Application 없이 vLLM만 Session에서 실행할 때:
+
+```bash
+python3 -m venv ~/vllm_cpu
+source ~/vllm_cpu/bin/activate
+unset PIP_USER && export PIP_USER=0
+pip install --upgrade pip
+pip install vllm-cpu
+
+python -m vllm.entrypoints.openai.api_server \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --host 0.0.0.0 \
+  --port 8001 \
+  --gpu-memory-utilization 0.35 \
+  --max-model-len 2048 \
+  --max-num-seqs 1
+```
+
+테스트:
+
+```bash
+curl http://127.0.0.1:8001/v1/models
+```
+
+---
+
+## 학습 순서
+
+| Step | 파일 | 내용 |
+|------|------|------|
+| 1 | `notebooks/01_vllm_basics.ipynb` | vLLM 개념, 서버 기동, API 호출 |
+| 2 | `notebooks/02_inference_params.ipynb` | temperature, top_p, max_tokens 실험 |
+| 3 | `notebooks/03_cloudera_intro.ipynb` | Cloudera AI 구조, Application 배포 |
+| 4 | `app/main.py` + `app/static/index.html` | 패션 챗봇 앱 |
 
 ---
 
@@ -83,22 +125,18 @@ CML에서는 `cdsw-build.sh`와 `cdsw-run.sh`가 자동으로 실행됩니다.
 
 ```
 beauty-fashion-vllm/
-├── notebooks/               # 학습용 Jupyter 노트북
-│   ├── 01_vllm_basics.ipynb
-│   ├── 02_inference_params.ipynb
-│   └── 03_cloudera_intro.ipynb
 ├── app/
-│   ├── main.py              # FastAPI 서버 (전체 백엔드)
+│   ├── main.py              # FastAPI 서버
 │   ├── config.py            # 환경 설정
-│   └── static/
-│       └── index.html       # 챗봇 UI (순수 HTML)
-├── scripts/
-│   └── start_vllm.sh        # vLLM 서버 시작 스크립트
+│   └── static/index.html    # 챗봇 UI
+├── notebooks/               # 학습용 노트북
+├── scripts/start_vllm.sh    # vLLM 서버 시작 (Session용)
+├── cdsw-build.sh            # Application 빌드
+├── cdsw-run.sh              # Application 실행
 ├── requirements/
-│   ├── base.txt             # 공통 의존성
-│   ├── local.txt            # 로컬 (CPU vLLM)
-│   └── cloudera.txt         # CML (CUDA vLLM)
-└── README.md
+│   ├── base.txt             # FastAPI 앱 의존성
+│   └── cloudera.txt         # vllm-cpu 포함
+└── .env.cloudera.example    # 환경변수 예시
 ```
 
 ---
@@ -107,7 +145,7 @@ beauty-fashion-vllm/
 
 | 개념 | 설명 |
 |------|------|
-| **PagedAttention** | GPU 메모리를 페이지 단위로 관리 → 메모리 낭비 없이 더 많은 요청 처리 |
-| **Continuous Batching** | 요청이 들어오는 즉시 처리 → 기다리지 않고 바로 토큰 생성 |
-| **OpenAI 호환 API** | `/v1/chat/completions` 엔드포인트 제공 → OpenAI SDK 그대로 사용 가능 |
-| **KV Cache** | 이전에 계산한 Key/Value를 재사용 → 반복 계산 없이 빠른 응답 |
+| **PagedAttention** | GPU/CPU 메모리를 페이지 단위로 관리 → 더 많은 요청 처리 |
+| **Continuous Batching** | 요청이 들어오는 즉시 처리 |
+| **OpenAI 호환 API** | `/v1/chat/completions` — OpenAI SDK 그대로 사용 |
+| **KV Cache** | 이전 Key/Value 재사용 → 빠른 응답 |
