@@ -185,44 +185,114 @@ curl http://127.0.0.1:8001/v1/models
 
 ---
 
-## Cloudera AI에서 Beauty Fashion App 실행
+## Beauty Fashion App 테스트 (Step 12 ~ 14)
 
-vLLM 설치·테스트가 완료되면 아래 두 가지 방법 중 하나로 챗봇 앱을 실행합니다.
+vLLM 설치(Step 1~11)가 완료되면, **터미널 2개**로 앱을 실행하고 채팅 API를 테스트합니다.
 
-### 방법 A — Session에서 빠르게 실행 (vLLM 이미 실행 중)
+| 서비스 | 포트 | 터미널 |
+|--------|------|--------|
+| vLLM API | **8001** | 터미널 1 |
+| FastAPI 앱 | **8002** | 터미널 2 |
 
-포트 구성:
+---
 
-| 서비스 | 포트 | 설명 |
-|--------|------|------|
-| vLLM | **8001** | 터미널 1 — API 백엔드 |
-| FastAPI 앱 | **8002** | 터미널 2 — 챗봇 UI (Session에서 접속) |
+### Step 12. vLLM 서버 실행 (터미널 1)
 
-vLLM이 **터미널 1**에서 포트 `8001`로 실행 중일 때, **같은 Session**의 **터미널 2**에서:
+가상환경을 활성화한 뒤 vLLM을 포트 **8001**에서 시작합니다.
 
 ```bash
-cd ~/beauty-fashion-vllm
-git pull
+source ~/vllm_cpu/bin/activate
 
+python -m vllm.entrypoints.openai.api_server \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --host 0.0.0.0 \
+  --port 8001 \
+  --gpu-memory-utilization 0.35 \
+  --max-model-len 2048 \
+  --max-num-seqs 1
+```
+
+![Step 12 — vLLM 서버 실행 및 추론 로그](docs/images/12-vllm-server-running.png)
+
+> **설명**: `Starting vLLM server on http://0.0.0.0:8001`과 `Application startup complete.`가 보이면 준비 완료입니다. 이후 FastAPI 앱에서 `/api/chat` 요청이 오면 `POST /v1/chat/completions HTTP/1.1" 200 OK` 로그와 함께 **Avg generation throughput**(약 4~5 tokens/s)이 출력됩니다. 이 터미널은 계속 실행 상태를 유지해야 합니다.
+
+---
+
+### Step 13. FastAPI 앱 실행 (터미널 2)
+
+**새 Terminal Access**를 열고 Beauty Fashion App을 포트 **8002**에서 시작합니다.
+
+```bash
+cd ~/beauty-fashion-vllm && git pull
 source ~/vllm_cpu/bin/activate
 unset PIP_USER && export PIP_USER=0
 pip install -r requirements/base.txt
 
 export VLLM_BASE_URL=http://127.0.0.1:8001/v1
 export MODEL_NAME=Qwen/Qwen2.5-0.5B-Instruct
-export APP_PORT=8002
 uvicorn app.main:app --host 0.0.0.0 --port 8002
 ```
+
+헬스체크:
+
+```bash
+curl http://127.0.0.1:8002/api/health
+```
+
+![Step 13 — FastAPI 앱 기동 및 헬스체크](docs/images/13-fastapi-app-start.png)
+
+> **설명**: `Uvicorn running on http://0.0.0.0:8002`가 표시되면 앱이 시작된 것입니다. `GET /api/health HTTP/1.1" 200 OK` 로그는 vLLM(8001)과의 연결이 정상임을 의미합니다. venv `(vllm_cpu)`가 활성화되어 있어야 pip 설치 오류(Permission denied)를 피할 수 있습니다.
 
 > **Permission denied**: venv 미활성화 시 발생 → `source ~/vllm_cpu/bin/activate` 후 재시도.
 
 > **pip dependency conflicts**: `pip install "fastapi[standard]>=0.133.0,<0.137.0" "uvicorn[standard]>=0.31.1" python-dotenv` 로 vllm-cpu와 호환 버전을 유지하세요.
 
-> **address already in use**: vLLM(8001)과 앱(8002) 포트가 겹치지 않도록 확인하세요. `ss -tlnp | grep -E '8001|8002'`
+---
 
-헬스체크: `curl http://127.0.0.1:8002/api/health`
+### Step 14. 채팅 API 테스트
+
+터미널 2(uvicorn)가 실행 중인 상태에서, **같은 Session의 다른 터미널** 또는 새 Terminal Access에서 패션 질문을 보냅니다.
+
+```bash
+curl -X POST http://127.0.0.1:8002/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "The weather in Korea is extremely hot today. I am planning to meet a friend later - could you recommend an outfit for me?"}'
+```
+
+![Step 14 — /api/chat 채팅 API 테스트 성공](docs/images/14-chat-api-test.png)
+
+> **설명**: JSON 응답에 `"answer"`(패션 추천 텍스트)와 `"tokens_used"`(사용 토큰 수)가 포함되면 **Beauty Fashion App 전체 스택 테스트 성공**입니다. 흐름: `curl → FastAPI :8002/api/chat → vLLM :8001/v1/chat/completions → Qwen2.5-0.5B-Instruct`. CPU 환경에서는 응답에 수십 초가 걸릴 수 있습니다.
+
+**성공 응답 예시:**
+
+```json
+{
+  "answer": "Certainly! For a hot day in Korea, consider wearing light and breathable fabrics...",
+  "tokens_used": 203
+}
+```
+
+**브라우저 UI 테스트** (Session에서 포트가 노출되는 경우):
+
+```
+http://127.0.0.1:8002/
+```
+
+예시 질문 버튼(여름 데이트 코디, 뷰티 제품 등)을 클릭하거나 직접 입력 후 전송합니다.
 
 > **주의**: Session을 종료하면 vLLM과 앱이 모두 중단됩니다.
+
+---
+
+## Cloudera AI에서 Beauty Fashion App 배포
+
+Session 테스트(Step 12~14)가 성공하면, 필요 시 Application으로 상시 배포할 수 있습니다.
+
+### 방법 A — Session 실행 요약
+
+위 **Step 12 ~ 14** 순서를 따릅니다. 포트: vLLM **8001** + FastAPI **8002**.
+
+> **address already in use**: `ss -tlnp | grep -E '8001|8002'` 로 포트 충돌을 확인하세요.
 
 ---
 
@@ -265,7 +335,7 @@ cd beauty-fashion-vllm && git checkout local-m2pro
 
 ```
 beauty-fashion-vllm/
-├── docs/images/             # Cloudera AI 설치 가이드 스크린샷
+├── docs/images/             # Cloudera AI 설치·앱 테스트 스크린샷 (Step 1~14)
 ├── app/
 │   ├── main.py              # FastAPI 서버
 │   ├── config.py            # 환경 설정
