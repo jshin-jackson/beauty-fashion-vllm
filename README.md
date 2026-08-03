@@ -1,6 +1,22 @@
 # Beauty & Fashion AI — vLLM 학습 프로젝트
 
-> **목적**: vLLM / AI 인퍼런스 / Cloudera AI 배포를 단계적으로 이해하는 학습용 프로젝트입니다.
+> **MBO 목표 프로젝트**: 본 프로젝트는 **MBO(Management By Objectives)** 를 위해 수행하는 학습·실습 프로젝트입니다.
+
+---
+
+## 프로젝트 개요
+
+**Cloudera AI** 환경에 **vLLM**을 설치하고, vLLM 기반 **Application 서비스**(Beauty Fashion 챗봇)를 직접 구축·테스트함으로써, AI 인퍼런스 서비스의 **전체 프로세스**를 이해하는 것이 목표입니다.
+
+| 단계 | 내용 |
+|------|------|
+| **환경 구성** | Cloudera AI Session 생성, Runtime 선택, Kerberos 인증 |
+| **vLLM 설치·실행** | `vllm-cpu` 설치, OpenAI 호환 API 서버 기동 (포트 8001) |
+| **애플리케이션 개발** | FastAPI + 챗봇 UI, vLLM 연동 (`/api/chat`) |
+| **서비스 테스트** | 헬스체크, 채팅 API 호출, End-to-End 검증 |
+| **배포 이해** | Session 실행 vs Cloudera AI Application 배포 (`cdsw-build.sh` / `cdsw-run.sh`) |
+
+> **목적**: vLLM / AI 인퍼런스 / Cloudera AI 배포를 단계적으로 이해하고, **Cloudera Data Service on-premise 1.5.5** 환경에서 LLM Application 서비스를 운영할 수 있는 역량을 확보합니다.
 
 **환경**: Cloudera Data Service on-premise 1.5.5 · Cloudera AI · Python 3.11 Standard · CPU (non-GPU)
 
