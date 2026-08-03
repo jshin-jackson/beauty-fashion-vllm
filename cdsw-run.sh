@@ -1,19 +1,19 @@
 #!/bin/bash
 # Cloudera AI Application 실행 스크립트
-# vLLM 서버(백그라운드) → FastAPI 앱(포트 8100) 순서로 시작합니다.
+# vLLM 서버(백그라운드, 8001) → FastAPI 앱(8002) 순서로 시작합니다.
 
 set -e
 
 unset PIP_USER
 export PIP_USER=0
 
-export VLLM_BASE_URL="${VLLM_BASE_URL:-http://127.0.0.1:8000/v1}"
+export VLLM_BASE_URL="${VLLM_BASE_URL:-http://127.0.0.1:8001/v1}"
 export MODEL_NAME="${MODEL_NAME:-Qwen/Qwen2.5-0.5B-Instruct}"
 export MAX_MODEL_LEN="${MAX_MODEL_LEN:-2048}"
-export VLLM_PORT="${VLLM_PORT:-8000}"
+export VLLM_PORT="${VLLM_PORT:-8001}"
 export GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.35}"
 export MAX_NUM_SEQS="${MAX_NUM_SEQS:-1}"
-export APP_PORT="${APP_PORT:-8100}"
+export APP_PORT="${APP_PORT:-8002}"
 export MAX_TOKENS="${MAX_TOKENS:-300}"
 export TEMPERATURE="${TEMPERATURE:-0.7}"
 export SYSTEM_PROMPT="${SYSTEM_PROMPT:-너는 10년 경력의 청담동 패션 스타일리스트야. 친근한 말투로 트렌디한 브랜드를 섞어서 추천해 줘. 답변은 3~5문장으로 간결하게 해줘.}"
