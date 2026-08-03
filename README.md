@@ -83,12 +83,12 @@ vLLM과 앱 코드를 담을 프로젝트를 만듭니다.
 | Editor | PBJ Workbench |
 | Kernel | Python 3.11 |
 | Edition | Standard |
-| Resource Profile | **2 vCPU / 4 GiB** (CPU) |
+| Resource Profile | **2 vCPU / 8 GiB** (CPU) |
 | Enable Spark | Off |
 
 ![Step 4 — Session 생성 설정](docs/images/04-new-session.png)
 
-> **설명**: GPU를 선택하지 않고 **2 vCPU / 4 GiB** CPU 프로파일을 사용합니다. 0.5B 소형 모델(`Qwen/Qwen2.5-0.5B-Instruct`) 기준으로 vLLM CPU 추론에 적합한 최소 구성입니다.
+> **설명**: GPU를 선택하지 않고 **2 vCPU / 8 GiB** CPU 프로파일을 사용합니다. 0.5B 소형 모델(`Qwen/Qwen2.5-0.5B-Instruct`) 기준으로 vLLM CPU 추론에 적합한 권장 구성입니다.
 
 ---
 
@@ -101,7 +101,7 @@ Session이 **Running** 상태가 되면 터미널에 접속합니다.
 
 ![Step 5 — Session 실행 중, Terminal Access 버튼](docs/images/05-session-terminal-access.png)
 
-> **설명**: PBJ Workbench 에디터와 별도로 **Cloudera AI Terminal** 웹 터미널이 열립니다. vLLM 설치·실행은 이 터미널에서 진행합니다. Session이 Running(2 vCPU / 4 GiB)인지 확인하세요.
+> **설명**: PBJ Workbench 에디터와 별도로 **Cloudera AI Terminal** 웹 터미널이 열립니다. vLLM 설치·실행은 이 터미널에서 진행합니다. Session이 Running(2 vCPU / 8 GiB)인지 확인하세요.
 
 ---
 
@@ -174,7 +174,7 @@ python -m vllm.entrypoints.openai.api_server \
 
 ![Step 9 — vLLM API 서버 시작](docs/images/09-vllm-server-start.png)
 
-> **설명**: vLLM 0.26.0이 `device_config=cpu`로 엔진을 초기화합니다. `--gpu-memory-utilization 0.35`는 CPU 환경에서 **RAM 예약 비율**을 의미합니다 (4 GiB × 0.35 ≈ 1.4 GiB). `--max-num-seqs 1`은 CPU에서 동시 요청 1개로 제한해 안정성을 높입니다. Triton 미설치 경고는 CPU 환경에서 정상이며 무시해도 됩니다.
+> **설명**: vLLM 0.26.0이 `device_config=cpu`로 엔진을 초기화합니다. `--gpu-memory-utilization 0.35`는 CPU 환경에서 **RAM 예약 비율**을 의미합니다 (8 GiB × 0.35 ≈ 2.8 GiB). `--max-num-seqs 1`은 CPU에서 동시 요청 1개로 제한해 안정성을 높입니다. Triton 미설치 경고는 CPU 환경에서 정상이며 무시해도 됩니다.
 
 ---
 
@@ -331,7 +331,7 @@ cd beauty-fashion-vllm
 | Name | `beauty-fashion-ai` |
 | Script | `cdsw-run.sh` |
 | Runtime | Python 3.11 Standard |
-| Resource Profile | 2 vCPU / 4 GiB (CPU) |
+| Resource Profile | 2 vCPU / 8 GiB (CPU) |
 
 **3. Create Application** → 생성된 HTTPS URL에서 챗봇 UI 사용
 
