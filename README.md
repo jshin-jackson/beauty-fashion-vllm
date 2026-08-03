@@ -320,7 +320,7 @@ Session과 별도로 **Applications** 메뉴에서 웹 앱을 상시 실행합�
 
 ```bash
 git clone https://github.com/jshin-jackson/beauty-fashion-vllm.git
-cd beauty-fashion-vllm && git checkout local-m2pro
+cd beauty-fashion-vllm
 ```
 
 **2. Application 생성**
