@@ -1,6 +1,7 @@
 # Beauty & Fashion AI — vLLM 학습 프로젝트
 
-> **MBO 목표 프로젝트**: 본 프로젝트는 **MBO(Management By Objectives)** 를 위해 수행하는 학습·실습 프로젝트입니다.
+> **MBO 목표 프로젝트**  
+> Cloudera Data Service on-premise 1.5.5 · **Cloudera AI** 환경에 **vLLM(`vllm-cpu`)** 을 설치하고, vLLM 기반 **Beauty Fashion Application** 서비스를 Session에서 구축·테스트함으로써 **AI 인퍼런스 서비스의 전체 프로세스**(환경 구성 → 모델 서빙 → API 연동 → E2E 검증 → Application 배포)를 이해하는 것이 본 프로젝트의 목표입니다.
 
 ---
 
