@@ -1,6 +1,6 @@
 # Beauty & Fashion AI — vLLM Learning Project
 
-> **MBO Learning Project**  
+> **MBO Learning Project(FY27-Q2)**  
 > This project supports an **MBO (Management By Objectives)** goal: install **vLLM (`vllm-cpu`)** on **Cloudera AI** (Cloudera Data Service on-premise 1.5.5), build and test a **Beauty Fashion Application** in a Session, and understand the **full AI inference workflow** — from environment setup → model serving → API integration → end-to-end testing → Application deployment.
 
 ---
